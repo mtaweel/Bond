@@ -25,14 +25,44 @@
 import AppKit
 import ReactiveKit
 
-public extension ReactiveExtensions where Base: NSTextView {
+public extension ReactiveExtensions where Base: NSPopUpButton {
 
-  public var string: DynamicSubject<String?> {
-    let notificationName = NSNotification.Name.NSTextDidChange
+  public var selectedItem: DynamicSubject<NSMenuItem?> {
     return dynamicSubject(
-      signal: NotificationCenter.default.reactive.notification(name: notificationName, object: base).eraseType(),
-      get: { $0.string },
-      set: { $0.string = $1 }
+      signal: keyPath(#keyPath(NSPopUpButton.selectedItem), ofType: Optional<NSMenuItem>.self).eraseType(),
+      get: { $0.selectedItem },
+      set: { $0.select($1) }
     )
+  }
+
+  public var selectedItemAtIndex: DynamicSubject<Int?> {
+    return dynamicSubject(
+      signal: selectedItem.toSignal().eraseType(),
+      get: { $0.indexOfSelectedItem >= 0 ? $0.indexOfSelectedItem : nil },
+      set: { $0.selectItem(at: $1 ?? -1) }
+    )
+  }
+
+  public var selectedItemWithTitle: DynamicSubject<String?> {
+    return dynamicSubject(
+      signal: selectedItem.toSignal().eraseType(),
+      get: { $0.titleOfSelectedItem },
+      set: { $0.selectItem(withTitle: $1 ?? "") }
+    )
+  }
+
+  public var selectedItemWithTag: DynamicSubject<Int> {
+    return dynamicSubject(
+      signal: selectedItem.toSignal().eraseType(),
+      get: { $0.selectedItem?.tag ?? -1 },
+      set: { $0.selectItem(withTag: $1) }
+    )
+  }
+}
+
+extension NSPopUpButton: BindableProtocol {
+
+  public func bind(signal: Signal<NSMenuItem?, NoError>) -> Disposable {
+    return reactive.selectedItem.bind(signal: signal)
   }
 }
